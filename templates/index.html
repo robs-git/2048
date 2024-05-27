@@ -5,47 +5,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>2048 Game</title>
     <style>
-        /* Add CSS styling for the game board */
         table {
             border-collapse: collapse;
         }
         td {
             width: 80px;
             height: 80px;
-            border: 1px solid black;
+            border: 1px solid #bbada0;
             text-align: center;
             font-size: 24px;
             font-weight: bold;
         }
-        .cell-0 { background-color: #ccc; color: #000; }
-        .cell-2 { background-color: #eee; color: #000; }
-        .cell-4 { background-color: #ffd700; color: #000; }
-        .cell-8 { background-color: #ffa500; color: #fff; }
-        .cell-16 { background-color: #ff6347; color: #fff; }
-        .cell-32 { background-color: #ff4500; color: #fff; }
-        .cell-64 { background-color: #ff0000; color: #fff; }
-        /* Add more classes for other cell values as needed */
+        .cell-0 { background-color: #cdc1b4; color: #cdc1b4; } 
+        .cell-2 { background-color: #eee4da; color: #000000; }
+        .cell-4 { background-color: #ede0c8; color: #000000; } 
+        .cell-8 { background-color: #f2b179; color: #FFFFFF; } 
+        .cell-16 { background-color: #f59563; color: #FFFFFF; } 
+        .cell-32 { background-color: #f67c5f; color: #FFFFFF; } 
+        .cell-64 { background-color: #f65e3b; color: #FFFFFF; } 
+        .cell-128 { background-color: #eac659; color: #FFFFFF; } 
+        .cell-256 { background-color: #edcc61; color: #FFFFFF; } 
+        .cell-512 { background-color: #edc850; color: #FFFFFF; } 
+        .cell-1024 { background-color: #edc53f; color: #FFFFFF; } 
+        .cell-2048 { background-color: #edc22e; color: #FFFFFF; } 
+        .cell-4096 { background-color: #3c3a32; color: #FFFFFF; } 
+        .cell-8192 { background-color: #3c3a32; color: #FFFFFF; } 
+        .cell-16384 { background-color: #3c3a32; color: #FFFFFF; } 
     </style>
 </head>
 <body>
     <h1>2048 Game</h1>
+    <button onclick="restartGame()">Restart Game</button>
     <table>
-        {% for row in matrix %}
+        {% for row in combined_matrix %}
         <tr>
-            {% for cell in row %}
-            <td class="cell-{{ cell }}">{{ cell }}</td>
+            {% for cell, colored_cell in row %}
+            <td class="{{ colored_cell }}">{{ cell }}</td>
             {% endfor %}
         </tr>
         {% endfor %}
     </table>
-    <!-- Add JavaScript logic for arrow key presses -->
     <script>
         document.addEventListener('keydown', function(event) {
             if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
-                // Prevent default scrolling behavior
                 event.preventDefault();
-
-                // Send arrow key press to Flask backend
                 fetch('/move', {
                     method: 'POST',
                     headers: {
@@ -55,8 +58,6 @@
                 })
                 .then(response => response.json())
                 .then(data => {
-                    // Update the game board with the new data received from the backend
-                    // You can update the table cells dynamically here
                     updateBoard(data);
                 })
                 .catch(error => {
@@ -66,14 +67,52 @@
         });
 
         function updateBoard(matrixData) {
-            // Loop through the matrix data and update the corresponding table cells
             matrixData.forEach((row, rowIndex) => {
                 row.forEach((cellValue, colIndex) => {
-                    document.querySelector(`table tr:nth-child(${rowIndex + 1}) td:nth-child(${colIndex + 1})`).textContent = cellValue;
-                    document.querySelector(`table tr:nth-child(${rowIndex + 1}) td:nth-child(${colIndex + 1})`).className = `cell-${cellValue}`;
+                    const cell = document.querySelector(`table tr:nth-child(${rowIndex + 1}) td:nth-child(${colIndex + 1})`);
+                    cell.textContent = parseInt(cellValue); // Convert to integer
+                    cell.className = `cell-${parseInt(cellValue)}`; // Convert to integer
                 });
             });
         }
+
+        function fetchGameState() {
+            fetch('/')
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const rows = doc.querySelectorAll('table tr');
+                    rows.forEach((row, rowIndex) => {
+                        const cells = row.querySelectorAll('td');
+                        cells.forEach((cell, colIndex) => {
+                            const targetCell = document.querySelector(`table tr:nth-child(${rowIndex + 1}) td:nth-child(${colIndex + 1})`);
+                            targetCell.textContent = parseInt(cell.textContent); // Convert to integer
+                            targetCell.className = cell.className;
+                        });
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+
+        function restartGame() {
+            fetch('/restart', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    fetchGameState();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        setInterval(fetchGameState, 1000); // Refresh game state every second
     </script>
 </body>
 </html>
